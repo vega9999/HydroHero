@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">HydroHero</string>
+    <string name="login_tag">Sign in</string>
+    <string name="username_tag">Username</string>
+    <string name="password_tag">Password</string>
+    <string name="login_button">Login</string>
+    <string name="login_success">Logged in</string>
+    <string name="login_fail">Invalid username or password</string>
+    <string name="logout">Logout</string>
+    <string name="welcome">Welcome</string>
+    <string name="title_activity_logout">Logout</string>
+    <string name="sensor_values">Accelerometer Values</string>
+    <string name="light_sensor_value">Light Sensor Alpha</string>
+    <string name="open_map_intent">Open Map</string>
+    <string name="open_browser_intent">Open Browser</string>
+    <string name="open_dialer_intent">Open Dialer</string>
+</resources>
