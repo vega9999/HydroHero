@@ -1,88 +1,138 @@
 package com.example.hydrohero.ui.theme
 
 import android.app.Application
-import android.content.Context
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
+import android.content.Context
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.ktx.userProfileChangeRequest
+import kotlinx.coroutines.tasks.await
 
 class LoginViewModel(application: Application) : AndroidViewModel(application) {
+    private val _username = MutableStateFlow<String?>(null)
+    val username: StateFlow<String?> get() = _username
 
-    private val sharedPreferences = application.getSharedPreferences(PREF, Context.MODE_PRIVATE)
+    private val _isLoggedIn = MutableStateFlow(false)
+    val isLoggedIn: StateFlow<Boolean> get() = _isLoggedIn
 
-    // Define StateFlow for UI states
-    private val _uiStateFlow = MutableStateFlow(
-        MainUIState(
-            userName = "${sharedPreferences.getString(USERNAME_KEY, "")}",
-            password = "",
-            isLoggedIn = sharedPreferences.getBoolean(LOGGED_IN_KEY, false),
-            isError = false
-        )
-    )
-    val uiStateFlow = _uiStateFlow.asStateFlow()
+    private val firebaseAuth: FirebaseAuth by lazy {
+        FirebaseAuth.getInstance()
+    }
+    private val sharedPreferences = application.getSharedPreferences("login_prefs", Context.MODE_PRIVATE)
 
-    // Data class to define the UI State
-    data class MainUIState(
-        val userName: String = "",
-        val password: String = "",
-        val isLoggedIn: Boolean = false,
-        val isError: Boolean = false
-    )
-
-    // Method to validate login credentials
-    fun validateUser() {
-        if (_uiStateFlow.value.userName == USERNAME && _uiStateFlow.value.password == PASSWORD) {
-            // Update UI state and persist login status
-            _uiStateFlow.update {
-                it.copy(
-                    isError = false,
-                    isLoggedIn = true
-                )
-            }
-            // Save login state and username in SharedPreferences
-            with(sharedPreferences.edit()) {
-                putBoolean(LOGGED_IN_KEY, true)
-                putString(USERNAME_KEY, _uiStateFlow.value.userName)
-                apply()
-            }
-
-        } else {
-            // Update UI state to show error
-            _uiStateFlow.update { it.copy(isError = true, isLoggedIn = false) }
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    val errorMessage: StateFlow<String?> get() = _errorMessage
+    init {
+        val savedUsername = sharedPreferences.getString("username", null)
+        if (savedUsername != null) {
+            _username.value = savedUsername
+            _isLoggedIn.value = true
         }
     }
 
-    // Function to update username in UI state
-    fun updateCurrentUsername(currentUsername: String) {
-        _uiStateFlow.update { it.copy(userName = currentUsername) }
+    fun updateUsername(newUsername: String) {
+        _username.value = newUsername
+        sharedPreferences.edit().putString("username", newUsername).apply()
     }
 
-    // Function to update password in UI state
-    fun updateCurrentPassword(currentPassword: String) {
-        _uiStateFlow.update { it.copy(password = currentPassword) }
+    fun loginWithEmail(email: String, password: String) {
+        viewModelScope.launch {
+            try {
+                val result = firebaseAuth.signInWithEmailAndPassword(email, password).await()
+                val user = result.user
+                if (user != null) {
+                    val username = user.displayName ?: "Unknown User"
+                    _username.value = username
+                    _isLoggedIn.value = true
+                    saveLoginState(username)
+                }
+            } catch (e: Exception) {
+                println("Login fehlgeschlagen: ${e.message}")
+            }
+        }
     }
 
-    // Function to clear error state
-    fun resetError() {
-        _uiStateFlow.update { it.copy(isError = false) }
+    fun setErrorMessage(message: String) {
+        _errorMessage.value = message
     }
 
-    // Logout function to clear login status and SharedPreferences
+    fun registerWithEmail(email: String, username: String, password: String) {
+        viewModelScope.launch {
+            try {
+                val existingMethods = firebaseAuth.fetchSignInMethodsForEmail(email).await()
+                if (existingMethods.signInMethods?.isNotEmpty() == true) {
+                    _errorMessage.value = "Username or E-Mail already in use"
+                    return@launch
+                }
+
+                val result = firebaseAuth.createUserWithEmailAndPassword(email, password).await()
+                val user = result.user
+                if (user != null) {
+                    val profileUpdates = userProfileChangeRequest {
+                        displayName = username
+                    }
+                    user.updateProfile(profileUpdates).await()
+                    _username.value = username
+                    _isLoggedIn.value = true
+                }
+            } catch (e: Exception) {
+                setErrorMessage("An error occurred: ${e.message}")
+            }
+        }
+    }
+
+    fun useWithoutRegistering() {
+        loginWithUsername("Guest")
+    }
+
+    private fun loginWithUsername(username: String) {
+        viewModelScope.launch {
+            _username.value = username
+            _isLoggedIn.value = true
+            saveLoginState(username)
+        }
+    }
+
+    suspend fun tryLoginWithEmail(email: String, password: String): Boolean {
+        return try {
+            val result = firebaseAuth.signInWithEmailAndPassword(email, password).await()
+            val user = result.user
+            if (user != null) {
+                val username = user.displayName ?: "Unknown User"
+                _username.value = username
+                _isLoggedIn.value = true
+                saveLoginState(username)
+                true
+            } else {
+                false
+            }
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    fun sendPasswordResetEmail(email: String) {
+        // TODO: Implement actual password reset logic
+        println("Password reset email sent to $email")
+    }
+
+    private fun saveLoginState(username: String) {
+        sharedPreferences.edit().putString("username", username).apply()
+    }
+
+    private fun clearLoginState() {
+        sharedPreferences.edit().remove("username").apply()
+    }
+
     fun logout() {
-        _uiStateFlow.update { it.copy(isLoggedIn = false) }
-        with(sharedPreferences.edit()) {
-            putBoolean(LoginViewModel.LOGGED_IN_KEY, false)
-            putString(LoginViewModel.USERNAME_KEY, _uiStateFlow.value.userName)
-            apply()
+        viewModelScope.launch {
+            firebaseAuth.signOut()
+            _username.value = null
+            _isLoggedIn.value = false
+            clearLoginState()
         }
-    }
-
-    companion object {
-        private const val USERNAME = "admin"
-        private const val PASSWORD = "password123"
-        private const val PREF = "LoginStorage"
-        private const val LOGGED_IN_KEY = "isLoggedIn"
-        private const val USERNAME_KEY = "username"
     }
 }

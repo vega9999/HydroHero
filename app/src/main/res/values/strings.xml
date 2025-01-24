@@ -10,9 +10,9 @@
     <string name="logout">Logout</string>
     <string name="welcome">Welcome</string>
     <string name="title_activity_logout">Logout</string>
-    <string name="sensor_values">Accelerometer Values</string>
-    <string name="light_sensor_value">Light Sensor Alpha</string>
-    <string name="open_map_intent">Open Map</string>
-    <string name="open_browser_intent">Open Browser</string>
-    <string name="open_dialer_intent">Open Dialer</string>
+    <string name="home_page_menu_item">Homepage</string>
+    <string name="history_menu_item">History</string>
+    <string name="social_menu_item">Social</string>
+    <string name="settings_menu_item">Settings</string>
+    <string name="achievements_menu_item">Achievements</string>
 </resources>

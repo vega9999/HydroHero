@@ -7,25 +7,27 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.hydrohero.ui.theme.MainViewModel
+import com.example.hydrohero.R
 
 @Composable
-fun SocialScreen(viewModel: MainViewModel = viewModel()) {
+fun SocialScreen(
+    modifier: Modifier = Modifier,
+    viewModel: MainViewModel
+) {
     val uiState by viewModel.uiState.collectAsState()
     var postInput by remember { mutableStateOf("") }
 
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        Text(
-            text = "Social Feed",
-            style = MaterialTheme.typography.headlineMedium
-        )
+
         Spacer(modifier = Modifier.height(16.dp))
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
@@ -36,23 +38,33 @@ fun SocialScreen(viewModel: MainViewModel = viewModel()) {
                 label = { Text("Share your hydration journey") },
                 modifier = Modifier.weight(1f)
             )
+
             Spacer(modifier = Modifier.width(8.dp))
+
             Button(
                 onClick = {
                     if (postInput.isNotBlank()) {
                         viewModel.addSocialPost(postInput)
                         postInput = ""
                     }
-                }
-            ) {
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = colorResource(R.color.dark_blue)),
+                ) {
                 Text("Post")
             }
         }
-        Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = { viewModel.shareProgress() }) {
+
+        Spacer(
+            modifier = Modifier.height(16.dp))
+
+        Button(onClick = { viewModel.shareProgress() },
+            colors = ButtonDefaults.buttonColors(containerColor = colorResource(R.color.dark_blue)),
+        ) {
             Text("Share Progress")
         }
+
         Spacer(modifier = Modifier.height(16.dp))
+
         LazyColumn {
             items(uiState.socialFeed) { post ->
                 Card(

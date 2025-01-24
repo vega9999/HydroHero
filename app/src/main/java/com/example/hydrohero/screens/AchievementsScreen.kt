@@ -13,19 +13,19 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.hydrohero.ui.theme.MainViewModel
 
 @Composable
-fun AchievementsScreen(viewModel: MainViewModel = viewModel()) {
+fun AchievementsScreen(
+    modifier: Modifier = Modifier,
+    viewModel: MainViewModel
+) {
     val uiState by viewModel.uiState.collectAsState()
 
     Column(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        Text(
-            text = "Achievements",
-            style = MaterialTheme.typography.headlineMedium
-        )
         Spacer(modifier = Modifier.height(16.dp))
+
         LazyColumn {
             items(uiState.achievements) { achievement ->
                 Card(
